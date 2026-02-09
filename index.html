@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiPromo - Seu Agregador de Ofertas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <style>
+        .hidden { display: none; }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 font-sans transition-colors duration-500">
+
+    <div class="fixed top-4 right-4 z-50">
+        <button onclick="toggledarkmode()" class="bg-gray-800 text-white dark:bg-white dark:text-black p-2 rounded-full shadow-lg transition-all">
+            <span id="dark-icon">🌙</span>
+        </button>
+    </div>
+    
+    <div id="tela-selecao" class="min-h-screen flex flex-col items-center justify-center p-6">
+        <div class="flex flex-col items-center mb-8">
+            <img src="logo-Multipromo.png"MultiPromo Logo" class="w-32 h-32 md:w-40 md:h-40 object-contain mb-4">
+            <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-300">MultiPromo</h1>
+            <p class="text-gray-600 dark:text-gray-400">Onde quer economizar hoje?</p>
+        </div>
+        <p class="text-gray-600 mb-12 text-center dark:text-gray-400">Selecione uma loja para ver as ofertas encontradas pela nossa IA</p>
+
+        <div id="grid-lojas" class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl w-full">
+            <div onclick="abrirLoja('Shopee')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-orange-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
+                <span class="text-orange-500 font-black text-4xl tracking-tighter">Shopee<span class="text-orange-600">.</span></span>
+            </div>
+
+            <div onclick="abrirLoja('MercadoLivre')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-yellow-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
+                <span class="text-blue-900 dark:text-blue-400 font-bold text-2xl italic">mercado<span class="font-extrabold">livre</span></span>
+            </div>
+
+            <div onclick="abrirLoja('Amazon')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-black dark:border-gray-500 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
+                <span class="text-black dark:text-white font-bold text-3xl">amazon</span>
+            </div>
+
+            <div onclick="abrirLoja('AliExpress')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-red-500 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
+                <span class="text-red-600 font-extrabold text-2xl">Ali<span class="text-gray-800 dark:text-gray-200">Express</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="tela-vitrine" class="hidden min-h-screen p-8">
+        <button onclick="voltar()" class="mb-6 text-orange-600 font-bold flex items-center hover:underline">
+            ← Voltar para lojas
+        </button>
+
+        <div class="relative w-full max-w-md mb-6">
+            <input 
+                type="search" 
+                id="campo-busca" 
+                oninput="Filtro()" 
+                placeholder="O que você está procurando?"
+                class="w-full px-5 py-3 rounded-2xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 shadow-sm transition-all"
+            >
+            <span class="absolute right-4 top-3.5 opacity-40">🔍</span>
+        </div>
+        
+        <h2 id="titulo-loja" class="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-200">Ofertas</h2>
+
+        <div id="lista-produtos" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    </div>
+
+    <script>
+        // CONFIGURAÇÕES GLOBAIS
+        const MEU_ACCESS_TOKEN = 'APP_USR-7955094763491138-020919-5050f410417109afae7aff6e3e38d62a-1224628113';
+        let timerBusca;
+        let dadosAtuais = [];
+        let lojaAtiva = "";
+
+        const configLojas = {
+            'Shopee': { cor: "bg-orange-500 text-white", texto: "Ver na Shopee" },
+            'MercadoLivre': { cor: "bg-yellow-400 text-blue-900", texto: "Ver no Mercado Livre" },
+            'Amazon': { cor: "bg-black text-white", texto: "Ver na Amazon" },
+            'AliExpress': { cor: "bg-red-600 text-white", texto: "Ver no AliExpress" }
+        };
+
+        const bancoDeDadosLojas = {
+            'Shopee': [
+                { nome: "Mouse Logitech G305", preco: "R$ 261,64", img: 'https://down-br.img.susercontent.com/file/sg-11134201-82279-mhut8ew9i96w00.webp', link: '#' },
+                { nome: "Cadeira Gamer TGT", preco: "R$ 385,54", img: 'https://down-br.img.susercontent.com/file/sg-11134201-7ra2r-m58vbnvhiocq1c.webp', link: '#' }
+            ],
+            'Amazon': [
+                { nome: "Echo Dot 5ª Geração", preco: "R$ 429,00", img: 'https://m.media-amazon.com/images/I/518c9S3mYUL._AC_SL1000_.jpg', link: '#' }
+            ],
+            'AliExpress': [
+                { nome: "SSD NVMe 1TB", preco: "R$ 340,00", img: 'https://ae01.alicdn.com/kf/S7b719266710b42d08a11e8605c31f478I.jpg', link: '#' }
+            ]
+        };
+
+        async function buscarNoMercadoLivre(termo = "ofertas do dia") {
+            try {
+                // Se o termo for vazio, buscamos ofertas gerais
+                const busca = termo || "ofertas";
+                const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
+                
+                const resposta = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${MEU_ACCESS_TOKEN}` }
+                });
+
+                if (!resposta.ok) throw new Error("Erro na requisição");
+
+                const dados = await resposta.json();
+                return dados.results.map(item => ({
+                    nome: item.title,
+                    preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
+                    img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-W.jpg"),
+                    link: item.permalink
+                }));
+            } catch (erro) {
+                console.error("Erro API Mercado Livre:", erro);
+                return [];
+            }
+        }
+
+        async function abrirLoja(loja) {
+            lojaAtiva = loja;
+            document.getElementById('tela-selecao').classList.add('hidden');
+            document.getElementById('tela-vitrine').classList.remove('hidden');
+            document.getElementById('titulo-loja').innerText = `Ofertas: ${loja}`;
+
+            mostrarSkeleton();
+
+            if (loja === 'MercadoLivre') {
+                dadosAtuais = await buscarNoMercadoLivre();
+            } else {
+                // Pequeno delay para simular carregamento nas lojas com placeholder
+                await new Promise(r => setTimeout(r, 500));
+                dadosAtuais = bancoDeDadosLojas[loja] || [];
+            }
+            renderizarProdutos(dadosAtuais);
+        }
+
+        function renderizarProdutos(lista) {
+            const container = document.getElementById('lista-produtos');
+            container.innerHTML = ''; 
+            const estilo = configLojas[lojaAtiva] || { cor: "bg-gray-500", texto: "Ver Oferta" };
+
+            if (!lista || lista.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado. Verifique se o Token está ativo.</p>`;
+                return;
+            }
+
+            lista.forEach(p => {
+                container.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:-translate-y-1 hover:shadow-lg group">
+                        <div class="w-full h-40 flex items-center justify-center mb-4">
+                            <img src="${p.img}" class="max-w-full max-h-full object-contain rounded-lg">
+                        </div>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
+                        <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
+                        <a href="${p.link}" target="_blank" class="block text-center mt-4 ${estilo.cor} py-2 rounded-lg font-bold group-hover:scale-105 transition-transform">
+                            ${estilo.texto}
+                        </a>
+                    </div>`;
+            });
+        }
+
+        async function Filtro() {
+            clearTimeout(timerBusca);
+            const termo = document.getElementById('campo-busca').value;
+
+            if (lojaAtiva === 'MercadoLivre') {
+                timerBusca = setTimeout(async () => {
+                    if (termo.length > 0 && termo.length < 3) return;
+                    mostrarSkeleton();
+                    dadosAtuais = await buscarNoMercadoLivre(termo);
+                    renderizarProdutos(dadosAtuais);
+                }, 600);
+            } else {
+                const filtrados = dadosAtuais.filter(p => p.nome.toLowerCase().includes(termo.toLowerCase()));
+                renderizarProdutos(filtrados);
+            }
+        }
+
+        function mostrarSkeleton() {
+            const container = document.getElementById('lista-produtos');
+            container.innerHTML = Array(8).fill(`
+                <div class="animate-pulse bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                    <div class="w-full h-40 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
+                    <div class="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
+                    <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg w-full"></div>
+                </div>
+            `).join('');
+        }
+
+        function voltar() {
+            document.getElementById('tela-vitrine').classList.add('hidden');
+            document.getElementById('tela-selecao').classList.remove('hidden');
+            document.getElementById('campo-busca').value = '';
+        }
+
+        function toggledarkmode(){
+            const isDark = document.documentElement.classList.toggle('dark');
+            document.getElementById('dark-icon').innerText = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+            if(document.getElementById('dark-icon')) document.getElementById('dark-icon').innerText = '☀️';
+        }
+    </script>
+</body>
+</html>
