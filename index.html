@@ -26,7 +26,7 @@
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-300">MultiPromo</h1>
             <p class="text-gray-600 dark:text-gray-400">Onde quer economizar hoje?</p>
         </div>
-        <p class="text-gray-600 mb-12 text-center dark:text-gray-400">Selecione uma loja para ver as ofertas encontradas pela nossa IA</p>
+        <p class="text-gray-600 mb-12 text-center dark:text-gray-400">Selecione uma loja para ver as ofertas encontradas pela nossa IA.</p>
 
         <div id="grid-lojas" class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl w-full">
             <div onclick="abrirLoja('Shopee')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-orange-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
@@ -90,13 +90,18 @@
         async function buscarNoMercadoLivre(termo = "ofertas") {
             try {
                 const busca = termo || "ofertas";
-                // URL Pública - Não precisa de Token, por isso evita o erro de CORS no GitHub
-                const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
+                const urlOriginal = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
                 
-                const resposta = await fetch(url);
+                // Este link abaixo é o segredo: ele serve como ponte para pular o bloqueio de CORS
+                const urlComProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlOriginal)}`;
+                
+                const resposta = await fetch(urlComProxy);
                 if (!resposta.ok) throw new Error("Erro na rede");
 
-                const dados = await resposta.json();
+                const dadosProxy = await resposta.json();
+                // O allorigins devolve os dados dentro de uma propriedade chamada 'contents'
+                const dados = JSON.parse(dadosProxy.contents);
+
                 return dados.results.map(item => ({
                     nome: item.title,
                     preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
