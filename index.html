@@ -125,45 +125,53 @@
         }
     }
 
-        async function abrirLoja(loja) {
-            lojaAtiva = loja;
-            document.getElementById('tela-selecao').classList.add('hidden');
-            document.getElementById('tela-vitrine').classList.remove('hidden');
-            document.getElementById('titulo-loja').innerText = `Ofertas: ${loja}`;
-
-            mostrarSkeleton();
-            if (loja === 'MercadoLivre') {
-                dadosAtuais = await buscarNoMercadoLivre();
-            } else {
-                await new Promise(r => setTimeout(r, 400));
-                dadosAtuais = bancoDeDadosLojas[loja] || [];
-            }
-            renderizarProdutos(dadosAtuais);
-        }
-
-        function renderizarProdutos(lista) {
-            const container = document.getElementById('lista-produtos');
-            container.innerHTML = ''; 
-            const estilo = configLojas[lojaAtiva] || { cor: "bg-gray-500", texto: "Ver Oferta" };
-
-            if (!lista || lista.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado.</p>`;
-                return;
+        async function buscarNoMercadoLivre(termo = "ofertas") {
+            const busca = termo || "ofertas";
+            const urlOriginal = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
+            
+            // Tentativa 1: Via Corsproxy.io (Geralmente funciona direto)
+            try {
+                const resposta = await fetch(`https://corsproxy.io/?${encodeURIComponent(urlOriginal)}`);
+                if (!resposta.ok) throw new Error();
+                const dados = await resposta.json();
+                
+                if (dados.results && dados.results.length > 0) {
+                    return dados.results.map(item => ({
+                        nome: item.title,
+                        preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
+                        img: item.thumbnail.replace("-I.jpg", "-W.jpg"),
+                        link: item.permalink
+                    }));
+                }
+            } catch (e) {
+                console.log("Tentando segundo caminho...");
             }
 
-            lista.forEach(p => {
-                container.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:-translate-y-1 hover:shadow-lg group">
-                        <div class="w-full h-40 flex items-center justify-center mb-4">
-                            <img src="${p.img}" alt="${p.nome}" class="max-w-full max-h-full object-contain rounded-lg">
-                        </div>
-                        <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
-                        <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
-                        <a href="${p.link}" target="_blank" class="block text-center mt-4 ${estilo.cor} py-2 rounded-lg font-bold group-hover:scale-105 transition-transform">
-                            ${estilo.texto}
-                        </a>
-                    </div>`;
-            });
+            // Tentativa 2: Via AllOrigins (Plano B automático)
+            try {
+                const resposta = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(urlOriginal)}`);
+                const proxyData = await resposta.json();
+                const dados = JSON.parse(proxyData.contents);
+
+                if (dados.results && dados.results.length > 0) {
+                    return dados.results.map(item => ({
+                        nome: item.title,
+                        preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
+                        img: item.thumbnail.replace("-I.jpg", "-W.jpg"),
+                        link: item.permalink
+                    }));
+                }
+            } catch (e) {
+                console.error("Todas as tentativas automáticas falharam.");
+            }
+
+            // Se tudo falhar, ele mostra o botão de acesso como última opção para não travar o site
+            return [{
+                nome: `Ver ofertas de "${busca}" no Mercado Livre`,
+                preco: "Ver no Site",
+                img: "https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadolibre/logo__large_plus.png",
+                link: `https://lista.mercadolivre.com.br/${encodeURIComponent(busca)}`
+            }];
         }
 
         async function Filtro() {
