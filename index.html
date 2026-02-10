@@ -90,7 +90,7 @@
         async function buscarNoMercadoLivre(termo = "ofertas") {
             try {
                 const busca = termo || "ofertas";
-                // URL da API Pública - Sem Token para evitar erro de CORS
+                // URL Pública - Não precisa de Token, por isso evita o erro de CORS no GitHub
                 const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
                 
                 const resposta = await fetch(url);
@@ -119,7 +119,7 @@
             if (loja === 'MercadoLivre') {
                 dadosAtuais = await buscarNoMercadoLivre();
             } else {
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 400));
                 dadosAtuais = bancoDeDadosLojas[loja] || [];
             }
             renderizarProdutos(dadosAtuais);
@@ -131,7 +131,7 @@
             const estilo = configLojas[lojaAtiva] || { cor: "bg-gray-500", texto: "Ver Oferta" };
 
             if (!lista || lista.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado. Tente atualizar a página.</p>`;
+                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado.</p>`;
                 return;
             }
 
@@ -139,7 +139,7 @@
                 container.innerHTML += `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:-translate-y-1 hover:shadow-lg group">
                         <div class="w-full h-40 flex items-center justify-center mb-4">
-                            <img src="${p.img}" class="max-w-full max-h-full object-contain rounded-lg">
+                            <img src="${p.img}" alt="${p.nome}" class="max-w-full max-h-full object-contain rounded-lg">
                         </div>
                         <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
                         <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
