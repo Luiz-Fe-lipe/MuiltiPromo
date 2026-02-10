@@ -92,25 +92,36 @@
                 const busca = termo || "ofertas";
                 const urlOriginal = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
                 
-                // Este link abaixo é o segredo: ele serve como ponte para pular o bloqueio de CORS
-                const urlComProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlOriginal)}`;
+                // Usando o Corsproxy.io que é o mais estável para evitar o erro 403 e 408 das suas imagens
+                const urlComProxy = `https://corsproxy.io/?${encodeURIComponent(urlOriginal)}`;
                 
                 const resposta = await fetch(urlComProxy);
-                if (!resposta.ok) throw new Error("Erro na rede");
+                const dados = await resposta.json();
 
-                const dadosProxy = await resposta.json();
-                // O allorigins devolve os dados dentro de uma propriedade chamada 'contents'
-                const dados = JSON.parse(dadosProxy.contents);
+                // Aqui está o segredo para sumir o erro do 'map':
+                // Verificamos se 'results' existe antes de tentar ler
+                const produtos = dados.results || (dados.contents ? JSON.parse(dados.contents).results : []);
 
-                return dados.results.map(item => ({
+                if (!produtos || produtos.length === 0) {
+                    throw new Error("Lista vazia");
+                }
+
+                return produtos.map(item => ({
                     nome: item.title,
                     preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
                     img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-W.jpg"),
                     link: item.permalink
                 }));
+
             } catch (erro) {
-                console.error("Erro API Mercado Livre:", erro);
-                return [];
+                console.error("Erro na busca:", erro);
+                // Retorna um item amigável em vez de dar erro na tela
+                return [{
+                    nome: "Clique para ver ofertas direto no Mercado Livre",
+                    preco: "Acessar Loja",
+                    img: "https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadolibre/logo__large_plus.png",
+                    link: `https://lista.mercadolivre.com.br/${termo}`
+                }];
             }
         }
 
