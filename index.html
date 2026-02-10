@@ -23,11 +23,11 @@
     
     <div id="tela-selecao" class="min-h-screen flex flex-col items-center justify-center p-6">
         <div class="flex flex-col items-center mb-8">
-            <img src="logo-Multipromo.png"MultiPromo Logo" class="w-32 h-32 md:w-40 md:h-40 object-contain mb-4">
+            <img src="logo-Multipromo.png" alt="MultiPromo Logo" class="w-32 h-32 md:w-40 md:h-40 object-contain mb-4">
             <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-300">MultiPromo</h1>
             <p class="text-gray-600 dark:text-gray-400">Onde quer economizar hoje?</p>
         </div>
-        <p class="text-gray-600 mb-12 text-center dark:text-gray-400">Selecione uma loja para ver as ofertas encontradas pela nossa IA</p>
+        <p class="text-gray-600 mb-12 text-center dark:text-gray-400">Selecione uma loja para ver as ofertas encontradas pela nossa IA.</p>
 
         <div id="grid-lojas" class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl w-full">
             <div onclick="abrirLoja('Shopee')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-orange-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
@@ -70,8 +70,6 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES GLOBAIS
-        const MEU_ACCESS_TOKEN = 'APP_USR-7955094763491138-020919-5050f410417109afae7aff6e3e38d62a-1224628113';
         let timerBusca;
         let dadosAtuais = [];
         let lojaAtiva = "";
@@ -96,27 +94,23 @@
             ]
         };
 
-        async function buscarNoMercadoLivre(termo = "ofertas do dia") {
+        async function buscarNoMercadoLivre(termo = "ofertas") {
             try {
-                // Se o termo for vazio, buscamos ofertas gerais
                 const busca = termo || "ofertas";
                 const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
                 
-                const resposta = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${MEU_ACCESS_TOKEN}` }
-                });
-
-                if (!resposta.ok) throw new Error("Erro na requisição");
+                const resposta = await fetch(url);
+                if (!resposta.ok) throw new Error("Erro API");
 
                 const dados = await resposta.json();
                 return dados.results.map(item => ({
                     nome: item.title,
                     preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
-                    img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-W.jpg"),
+                    img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-V.jpg"),
                     link: item.permalink
                 }));
             } catch (erro) {
-                console.error("Erro API Mercado Livre:", erro);
+                console.error("Erro:", erro);
                 return [];
             }
         }
@@ -132,8 +126,7 @@
             if (loja === 'MercadoLivre') {
                 dadosAtuais = await buscarNoMercadoLivre();
             } else {
-                // Pequeno delay para simular carregamento nas lojas com placeholder
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 600));
                 dadosAtuais = bancoDeDadosLojas[loja] || [];
             }
             renderizarProdutos(dadosAtuais);
@@ -145,7 +138,7 @@
             const estilo = configLojas[lojaAtiva] || { cor: "bg-gray-500", texto: "Ver Oferta" };
 
             if (!lista || lista.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado. Verifique se o Token está ativo.</p>`;
+                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado.</p>`;
                 return;
             }
 
@@ -153,7 +146,7 @@
                 container.innerHTML += `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:-translate-y-1 hover:shadow-lg group">
                         <div class="w-full h-40 flex items-center justify-center mb-4">
-                            <img src="${p.img}" class="max-w-full max-h-full object-contain rounded-lg">
+                            <img src="${p.img}" alt="${p.nome}" class="max-w-full max-h-full object-contain rounded-lg">
                         </div>
                         <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
                         <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
@@ -206,7 +199,8 @@
 
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
-            if(document.getElementById('dark-icon')) document.getElementById('dark-icon').innerText = '☀️';
+            const icon = document.getElementById('dark-icon');
+            if(icon) icon.innerText = '☀️';
         }
     </script>
 </body>
