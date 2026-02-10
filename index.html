@@ -60,13 +60,14 @@
             <input type="search" id="campo-busca" oninput="Filtro()" placeholder="O que você busca?"
                 class="w-full px-5 py-3 rounded-2xl border border-gray-300 dark:bg-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 shadow-sm">
         </div>
-        <h2 id="titulo-loja" class="text-3xl font-bold mb-8 dark:text-white font-bold">Ofertas</h2>
+        <h2 id="titulo-loja" class="text-3xl font-bold mb-8 dark:text-white">Ofertas</h2>
         <div id="lista-produtos" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
     </div>
 
     <script>
         let dadosAtuais = [];
         let lojaAtiva = "";
+        let timerBusca;
 
         const configLojas = {
             'Shopee': { cor: "bg-orange-500 text-white", texto: "Ver na Shopee" },
@@ -85,30 +86,41 @@
         };
 
         async function buscarNoMercadoLivre(termo = "ofertas") {
+            const busca = termo || "ofertas";
+            // COLOQUE SEU ID DE AFILIADO AQUI (Exemplo: 123456789)
+            const SEU_ID_AFILIADO = "SEU_ID_AQUI";
+
+            const urlOriginal = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
+
             try {
-                const busca = termo || "ofertas";
-                const urlOriginal = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
-
-                // Usando o Corsproxy.io que entrega o dado "limpo" para o JavaScript
                 const resposta = await fetch(`https://corsproxy.io/?${encodeURIComponent(urlOriginal)}`);
-
-                if (!resposta.ok) throw new Error("Erro na requisição");
+                if (!resposta.ok) throw new Error("Bloqueio");
 
                 const dados = await resposta.json();
 
-                // Verifica se existem resultados antes de tentar mapear
-                if (dados && dados.results) {
-                    return dados.results.map(item => ({
-                        nome: item.title,
-                        preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
-                        img: item.thumbnail.replace("-I.jpg", "-W.jpg"), // Imagem em alta qualidade
-                        link: item.permalink
-                    }));
+                if (dados && dados.results && dados.results.length > 0) {
+                    return dados.results.map(item => {
+                        // Aqui nós transformamos o link comum em link de afiliado
+                        // Adicionando o parâmetro de tracking que o ML usa
+                        const linkAfiliado = `${item.permalink}?aff_id=${SEU_ID_AFILIADO}`;
+
+                        return {
+                            nome: item.title,
+                            preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
+                            img: item.thumbnail.replace("-I.jpg", "-V.jpg"),
+                            link: linkAfiliado // Agora o link tem seu ID!
+                        };
+                    });
+                } else {
+                    throw new Error("Vazio");
                 }
-                return [];
             } catch (erro) {
-                console.error("Erro na busca automática:", erro);
-                return [];
+                return [{
+                    nome: `Ver ofertas de "${busca}" no Mercado Livre`,
+                    preco: "Acessar Loja",
+                    img: "https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadolibre/logo__large_plus.png",
+                    link: `https://lista.mercadolivre.com.br/${encodeURIComponent(busca)}?aff_id=${SEU_ID_AFILIADO}`
+                }];
             }
         }
 
@@ -117,18 +129,16 @@
             document.getElementById('tela-selecao').classList.add('hidden');
             document.getElementById('tela-vitrine').classList.remove('hidden');
             document.getElementById('titulo-loja').innerText = `Ofertas: ${loja}`;
+            document.getElementById('campo-busca').value = '';
 
             mostrarSkeleton();
 
             if (loja === 'MercadoLivre') {
-                // Agora ele busca automaticamente assim que você clica
-                const produtosEncontrados = await buscarNoMercadoLivre();
-                dadosAtuais = produtosEncontrados;
+                dadosAtuais = await buscarNoMercadoLivre();
             } else {
                 await new Promise(r => setTimeout(r, 400));
                 dadosAtuais = bancoDeDadosLojas[loja] || [];
             }
-
             renderizarProdutos(dadosAtuais);
         }
 
@@ -137,24 +147,40 @@
             container.innerHTML = '';
             const estilo = configLojas[lojaAtiva];
 
-            if (lista.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center py-10 dark:text-white">Nenhum produto encontrado. Tente buscar outro termo.</p>`;
+            if (!lista || lista.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center py-10 dark:text-white opacity-50">Nenhum produto encontrado.</p>`;
                 return;
             }
 
             lista.forEach(p => {
                 container.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md transition-shadow">
                         <div class="w-full h-40 flex items-center justify-center mb-4">
                             <img src="${p.img}" class="max-w-full max-h-full object-contain rounded-lg">
                         </div>
-                        <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
+                        <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12 text-sm">${p.nome}</h3>
                         <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
-                        <a href="${p.link}" target="_blank" class="block text-center mt-4 ${estilo.cor} py-2 rounded-lg font-bold">
+                        <a href="${p.link}" target="_blank" class="block text-center mt-4 ${estilo.cor} py-2 rounded-lg font-bold hover:opacity-90 transition-opacity">
                             ${estilo.texto}
                         </a>
                     </div>`;
             });
+        }
+
+        function Filtro() {
+            clearTimeout(timerBusca);
+            const termo = document.getElementById('campo-busca').value;
+
+            timerBusca = setTimeout(async () => {
+                if (lojaAtiva === 'MercadoLivre') {
+                    mostrarSkeleton();
+                    dadosAtuais = await buscarNoMercadoLivre(termo);
+                    renderizarProdutos(dadosAtuais);
+                } else {
+                    const filtrados = dadosAtuais.filter(p => p.nome.toLowerCase().includes(termo.toLowerCase()));
+                    renderizarProdutos(filtrados);
+                }
+            }, 500);
         }
 
         function mostrarSkeleton() {
