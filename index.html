@@ -12,7 +12,6 @@
         .hidden { display: none; }
     </style>
 </head>
-
 <body class="bg-gray-100 dark:bg-gray-900 font-sans transition-colors duration-500">
 
     <div class="fixed top-4 right-4 z-50">
@@ -33,15 +32,12 @@
             <div onclick="abrirLoja('Shopee')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-orange-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
                 <span class="text-orange-500 font-black text-4xl tracking-tighter">Shopee<span class="text-orange-600">.</span></span>
             </div>
-
             <div onclick="abrirLoja('MercadoLivre')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-yellow-400 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
                 <span class="text-blue-900 dark:text-blue-400 font-bold text-2xl italic">mercado<span class="font-extrabold">livre</span></span>
             </div>
-
             <div onclick="abrirLoja('Amazon')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-black dark:border-gray-500 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
                 <span class="text-black dark:text-white font-bold text-3xl">amazon</span>
             </div>
-
             <div onclick="abrirLoja('AliExpress')" class="cursor-pointer bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border-b-4 border-red-500 h-40 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl hover:scale-105 opacity-80 hover:opacity-100">
                 <span class="text-red-600 font-extrabold text-2xl">Ali<span class="text-gray-800 dark:text-gray-200">Express</span></span>
             </div>
@@ -52,7 +48,6 @@
         <button onclick="voltar()" class="mb-6 text-orange-600 font-bold flex items-center hover:underline">
             ← Voltar para lojas
         </button>
-
         <div class="relative w-full max-w-md mb-6">
             <input 
                 type="search" 
@@ -63,9 +58,7 @@
             >
             <span class="absolute right-4 top-3.5 opacity-40">🔍</span>
         </div>
-        
         <h2 id="titulo-loja" class="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-200">Ofertas</h2>
-
         <div id="lista-produtos" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
     </div>
 
@@ -97,20 +90,21 @@
         async function buscarNoMercadoLivre(termo = "ofertas") {
             try {
                 const busca = termo || "ofertas";
+                // URL da API Pública - Sem Token para evitar erro de CORS
                 const url = `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(busca)}&limit=20`;
                 
                 const resposta = await fetch(url);
-                if (!resposta.ok) throw new Error("Erro API");
+                if (!resposta.ok) throw new Error("Erro na rede");
 
                 const dados = await resposta.json();
                 return dados.results.map(item => ({
                     nome: item.title,
                     preco: item.price.toLocaleString('pt-br', { style: 'currency', currency: 'BRL' }),
-                    img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-V.jpg"),
+                    img: item.thumbnail.replace("http://", "https://").replace("-I.jpg", "-W.jpg"),
                     link: item.permalink
                 }));
             } catch (erro) {
-                console.error("Erro:", erro);
+                console.error("Erro API Mercado Livre:", erro);
                 return [];
             }
         }
@@ -122,11 +116,10 @@
             document.getElementById('titulo-loja').innerText = `Ofertas: ${loja}`;
 
             mostrarSkeleton();
-
             if (loja === 'MercadoLivre') {
                 dadosAtuais = await buscarNoMercadoLivre();
             } else {
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 500));
                 dadosAtuais = bancoDeDadosLojas[loja] || [];
             }
             renderizarProdutos(dadosAtuais);
@@ -138,7 +131,7 @@
             const estilo = configLojas[lojaAtiva] || { cor: "bg-gray-500", texto: "Ver Oferta" };
 
             if (!lista || lista.length === 0) {
-                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado.</p>`;
+                container.innerHTML = `<p class="col-span-full text-center py-10 opacity-50 dark:text-white">Nenhum produto encontrado. Tente atualizar a página.</p>`;
                 return;
             }
 
@@ -146,7 +139,7 @@
                 container.innerHTML += `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-all hover:-translate-y-1 hover:shadow-lg group">
                         <div class="w-full h-40 flex items-center justify-center mb-4">
-                            <img src="${p.img}" alt="${p.nome}" class="max-w-full max-h-full object-contain rounded-lg">
+                            <img src="${p.img}" class="max-w-full max-h-full object-contain rounded-lg">
                         </div>
                         <h3 class="font-bold text-gray-800 dark:text-gray-50 line-clamp-2 h-12">${p.nome}</h3>
                         <p class="text-green-600 font-bold text-xl mt-2">${p.preco}</p>
@@ -199,8 +192,7 @@
 
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark');
-            const icon = document.getElementById('dark-icon');
-            if(icon) icon.innerText = '☀️';
+            if(document.getElementById('dark-icon')) document.getElementById('dark-icon').innerText = '☀️';
         }
     </script>
 </body>
